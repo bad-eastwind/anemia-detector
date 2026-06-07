@@ -116,7 +116,7 @@ def nt_xent(z1, z2, temp):
     N = z1.size(0)
     z = F.normalize(torch.cat([z1, z2], 0), dim=1)        # 2N x d
     sim = (z @ z.t()) / temp                              # 2N x 2N
-    sim.fill_diagonal_(-9e15)
+    sim.fill_diagonal_(torch.finfo(sim.dtype).min)
     targets = torch.arange(N, device=z.device)
     targets = torch.cat([targets + N, targets], 0)        # positive partner index
     return F.cross_entropy(sim, targets)
