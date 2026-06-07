@@ -1,0 +1,165 @@
+================================================================================
+ ANEMIA DETECTOR — TRAINING GUIDE (local smoke -> HPC/AWS full training)
+================================================================================
+Project: conjunctiva segmentation {background, palpebral, forniceal} + anemia
+classification from the segmented conjunctiva ROI. Dataset = Eyes-defy-anemia
+(India 95 + Italy 123 = 218 patients; 217 with a usable Hgb label).
+
+Accuracy is the only objective. The code is DEVICE-AGNOSTIC and auto-detects
+CUDA (HPC/H100) > MPS (local mac) > CPU. The same scripts run everywhere; you
+only swap the YAML config. Smoke configs prove the code runs locally; the HPC
+configs unleash the heavy models (SegFormer-B5, UNet++/EfficientNet-B5, ViT-L).
+
+--------------------------------------------------------------------------------
+ 0. REPO LAYOUT
+--------------------------------------------------------------------------------
+  dataset anemia/<India|Italy>/<id>/   original .jpg + *_palpebral/_forniceal/
+                                        _forniceal_palpebral .png masks + *.xlsx
+  src/
+    data_io.py            robust IO (EXIF, corrupt-iCCP PNGs, mixed alpha/RGB masks)
+    build_manifest.py     -> outputs/manifest.csv (paths, Hgb, sex, age, WHO anemia)
+    precompute_cache.py   -> outputs/cache/{img,lbl,roi}/<uid>.png  (training cache)
+    seg.py                config-driven segmentation (CV / LOCO / final)
+    anemia_features.py    -> outputs/anemia_features.csv (158 pallor/color features)
+    anemia_clf.py         features -> GBM/LogReg/RF + Hgb-regression (CPU, fast)
+    anemia_cnn.py         config-driven deep ROI classifier (ViT/CNN)
+    run_seg.sh            wrapper: zsh src/run_seg.sh <config.yaml>
+  configs/                YAML configs (see section 4)
+  outputs/                manifest, cache, results JSONs, model weights
+  requirements.txt
+
+--------------------------------------------------------------------------------
+ 1. ENVIRONMENT
+--------------------------------------------------------------------------------
+ LOCAL (already done on this mac): .venv exists, MPS torch installed.
+
+ HPC / AWS (CUDA):
+   module load python/3.12   # or conda create -n anemia python=3.12
+   python -m venv .venv && source .venv/bin/activate
+   pip install --upgrade pip
+   # 1) install CUDA torch FIRST (match cluster CUDA, e.g. cu124):
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+   # 2) then the rest:
+   pip install -r requirements.txt
+   # sanity:
+   python -c "import torch;print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+
+--------------------------------------------------------------------------------
+ 2. ONE-TIME DATA PREP (run once, on any machine — cheap, CPU only)
+--------------------------------------------------------------------------------
+   python src/build_manifest.py        # -> outputs/manifest.csv  (+ prints summary)
+   python src/precompute_cache.py      # -> outputs/cache/  (EXIF-fixed, 512px, aligned)
+   python src/anemia_features.py       # -> outputs/anemia_features.csv (for the GBM route)
+
+ The cache decouples slow/fragile IO from training and is what seg.py / anemia_cnn.py read.
+ DEFAULT CACHE RESOLUTION = 512px. If you want to train segmentation at res > 512
+ (e.g. 640/768 on H100 for extra accuracy), edit SIZE in src/precompute_cache.py and
+ rerun it, otherwise A.Resize would upscale a 512 cache (no benefit).
+
+ Copy the WHOLE project (including `dataset anemia/` and `outputs/cache/`) to the cluster,
+ OR just copy `dataset anemia/` and rerun the three prep commands there.
+
+--------------------------------------------------------------------------------
+ 3. SEGMENTATION  (src/seg.py)
+--------------------------------------------------------------------------------
+ Run a config (executes every mode listed in the config: cv, loco, final):
+   python src/seg.py --config <cfg.yaml>
+   # or, with logging:
+   zsh src/run_seg.sh <cfg.yaml>
+
+ CLI overrides for quick checks:  --mode cv|loco|final   --subset N   --epochs N
+
+ LOCAL SMOKE (proves code runs; ~1 min on M1):
+   python src/seg.py --config configs/seg_smoke_local.yaml
+   # 2 folds x 2 epochs x 24 patients, unet+efficientnet-b3 @256. IoU will be ~0 — that's fine.
+
+ HPC FULL TRAINING (accuracy-first; pick the winner by LOCO IoU):
+   zsh src/run_seg.sh configs/seg_hpc_segformer_b5.yaml     # SegFormer (MiT-b5), 512, 200 ep
+   zsh src/run_seg.sh configs/seg_hpc_unetpp_effb5.yaml     # UNet++/EfficientNet-B5, 512, 200 ep
+   # (run both, compare; SegFormer is usually the transformer winner, UNet++ the CNN baseline)
+
+ IMPORTANT: SegFormer / MiT (`encoder: mit_b*`) backbones DO NOT train on MPS
+ (a torch-2.12 .view backward bug in the attention kernel). They train fine on CUDA.
+ So the SegFormer config is HPC/AWS only; locally use the efficientnet smoke config.
+
+ OUTPUTS (per config, under outputs/seg/<out_subdir>/):
+   seg_cv_<name>.json     per-fold + mean/std per-class IoU & Dice, mIoU_fg, mDice_fg
+   seg_loco_<name>.json   train_India_test_Italy & train_Italy_test_India per-class IoU/Dice
+   seg_final_<name>.json  train fit + path to saved weights
+   <name>_final.pt        deployable weights (state_dict + cfg) for inference
+ Metrics are reported at the CONVERGED FINAL epoch (in CV/LOCO the val split IS the test
+ split, so best-epoch selection would peek — final-epoch is the honest number).
+
+--------------------------------------------------------------------------------
+ 4. ANEMIA CLASSIFICATION  (two complementary routes — run both, report both)
+--------------------------------------------------------------------------------
+ ROUTE A — handcrafted pallor features + gradient boosting (CPU, seconds, run anywhere):
+   python src/anemia_clf.py
+   # Pooled 5-fold CV + LOCO for: direct classification (HGB/RF/LogReg) AND
+   # Hgb-regression -> WHO sex threshold. Writes outputs/clf/anemia_results.json.
+   # KEY RESULT (local): the Hgb-regression->WHO route is prevalence-robust and wins LOCO
+   #   (train India -> test Italy: AUC ~0.90). Direct classification at a fixed 0.5 threshold
+   #   breaks under the India(72% anemic) vs Italy(19%) prevalence shift. Prefer regression.
+
+ ROUTE B — deep ViT/CNN on the masked conjunctiva ROI (src/anemia_cnn.py, GPU for the big nets):
+   LOCAL SMOKE (~1 min): python src/anemia_cnn.py --config configs/anemia_cnn_smoke_local.yaml
+   HPC FULL:             python src/anemia_cnn.py --config configs/anemia_cnn_hpc_vit.yaml
+   # ViT-Large @384, target=regress (Hgb -> WHO threshold). Pooled CV + LOCO.
+   # To run the direct head, set `target: classify` in the config.
+   # To compare a strong CNN, set backbone: convnext_large.fb_in22k_ft_in1k_384.
+   # Outputs -> outputs/clf/anemia_cnn_<name>.json.
+
+ Metrics for both routes: AUC, sensitivity, specificity, accuracy — reported OVERALL and
+ PER COHORT; sens/spec is the anemic/non-anemic split. LOCO is the cross-site bar that matters.
+
+--------------------------------------------------------------------------------
+ 5. CONFIG FIELD REFERENCE
+--------------------------------------------------------------------------------
+ SEGMENTATION (configs/seg_*.yaml):
+   name            run name (used in output filenames)
+   arch            unet | unetplusplus | segformer | deeplabv3plus | manet | fpn | pspnet
+   encoder         smp encoder: efficientnet-b0..b7, mit_b0..b5 (=SegFormer; CUDA only),
+                   se_resnext50_32x4d, resnet*, etc.
+   encoder_weights imagenet (or null for scratch)
+   res             input size (must be <= cache SIZE unless you re-cache larger)
+   bs              batch size (H100 80GB: 16-32 @512; lower for bigger res/encoder)
+   epochs          200 is a good full-training default for 217 images + heavy aug
+   lr              SegFormer/ViT: low (6e-5 / 1e-5). CNN U-Net: 3e-4.
+   weight_decay    0.01 (0.05 for big ViT)
+   num_workers     8 on HPC; 2 on the 16GB mac (each mac worker spawns a full torch proc)
+   amp             true on CUDA (mixed precision, big speed/memory win); ignored off-CUDA
+   aug             heavy (full geometric+photometric) | light
+   folds           CV folds (5)
+   subset          (optional) cap #patients — smoke only
+   modes           list: [cv, loco, final]
+   out_subdir      output folder under outputs/seg/
+
+ ANEMIA CNN (configs/anemia_cnn_*.yaml):
+   backbone        any timm model name (vit_large_patch16_384.augreg_in21k_ft_in1k,
+                   convnext_large.fb_in22k_ft_in1k_384, resnet18 [smoke], ...)
+   target          regress (Hgb -> WHO threshold; recommended) | classify
+   res, bs, epochs, lr, weight_decay, num_workers, amp, folds, subset, modes, seed
+                   (same meaning as above; modes = subset of [cv, loco])
+
+--------------------------------------------------------------------------------
+ 6. RECOMMENDED HPC RUN ORDER + ROUGH COST
+--------------------------------------------------------------------------------
+   1) python src/build_manifest.py && python src/precompute_cache.py && python src/anemia_features.py
+   2) python src/anemia_clf.py                                   # instant baseline (Route A)
+   3) zsh src/run_seg.sh configs/seg_hpc_segformer_b5.yaml       # ~hours on 1x H100
+   4) zsh src/run_seg.sh configs/seg_hpc_unetpp_effb5.yaml       # compare by LOCO IoU
+   5) python src/anemia_cnn.py --config configs/anemia_cnn_hpc_vit.yaml   # Route B
+ Single H100 handles every config above. To scale further for max accuracy: raise `res`
+ (re-cache first), `encoder` to efficientnet-b7 / mit_b5, `bs`, and add test-time augmentation.
+ No multi-GPU code is included; for DDP wrap train_split in torchrun (each run fits one H100).
+
+--------------------------------------------------------------------------------
+ 7. DATA FACTS BAKED INTO THE CODE (so results are correct — do not "fix" these away)
+--------------------------------------------------------------------------------
+ - JPGs are stored landscape with EXIF orientation; code exif_transposes them to portrait
+   so they align to the masks by a plain resize (NO registration/template matching).
+ - Mask PNGs have a corrupt iCCP chunk: PIL can't open them, OpenCV can -> masks read via cv2.
+ - Foreground encoding differs by cohort: India = alpha channel, Italy = non-background RGB.
+ - WHO anemia: adults, M < 13.0 g/dL, F < 12.0 g/dL. Italy/93 has no Hgb (excluded from anemia).
+ - India is 72% anemic, Italy 19% — judge everything by LOCO, not pooled CV.
+================================================================================

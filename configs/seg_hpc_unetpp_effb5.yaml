@@ -1,0 +1,20 @@
+# HPC / AWS (H100, CUDA) — UNet++ with EfficientNet-B5 (heavy CNN baseline).
+# The other half of the instruction's recommendation: strong pretrained-encoder U-Net.
+# Compare against SegFormer-b5 by LOCO IoU and keep the winner.
+# Works on CUDA and MPS, but heavy at 512 — intended for GPU.
+name: seg_unetpp_effb5
+arch: unetplusplus
+encoder: efficientnet-b5    # bump to efficientnet-b7 for max capacity on H100
+encoder_weights: imagenet
+res: 512
+bs: 16
+epochs: 200
+lr: 3.0e-4
+weight_decay: 0.01
+num_workers: 8
+amp: true
+aug: heavy
+folds: 5
+modes: [cv, loco, final]
+seed: 42
+out_subdir: unetpp_effb5

@@ -1,0 +1,22 @@
+# HPC / AWS (H100, CUDA) — SegFormer (MiT-b5 backbone). Accuracy-first, full power.
+# This is the strongest transformer option per instruction.md. Needs CUDA (MiT backward is
+# broken on MPS). On a single H100 (80GB) bs=16 @512 fits comfortably with AMP.
+# Full mandatory protocol: pooled 5-fold CV + LOCO + final deployable model.
+name: seg_segformer_b5
+arch: segformer
+encoder: mit_b5
+encoder_weights: imagenet
+res: 512
+bs: 16                  # raise to 24-32 on 80GB H100 if you re-cache at 512 (see guide)
+epochs: 200
+lr: 6.0e-5             # SegFormer fine-tunes best at low LR
+weight_decay: 0.01
+num_workers: 8
+amp: true
+aug: heavy
+folds: 5
+modes: [cv, loco, final]
+seed: 42
+out_subdir: segformer_b5
+# NOTE: precompute_cache.py currently caches at 512px. For res>512 re-cache at that size
+# (set SIZE in precompute_cache.py) so A.Resize upscales nothing.

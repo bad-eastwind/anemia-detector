@@ -1,0 +1,18 @@
+# HPC / AWS (H100, CUDA) — deep ROI anemia classifier, accuracy-first.
+# ViT-Large @384 (ImageNet-21k pretrained). target=regress predicts Hgb then applies the WHO
+# sex threshold — this is prevalence-robust and was the LOCO winner with handcrafted features,
+# so it is the recommended deep setup too. Switch target: classify for the direct head.
+name: anemia_cnn_vit_l
+backbone: vit_large_patch16_384.augreg_in21k_ft_in1k
+target: regress         # regress (Hgb->WHO) recommended for LOCO; or classify
+res: 384
+bs: 24
+epochs: 80
+lr: 1.0e-5             # large ViT fine-tunes at very low LR
+weight_decay: 0.05
+num_workers: 8
+amp: true
+folds: 5
+modes: [cv, loco]
+seed: 42
+# Strong CNN alternative to compare: backbone: convnext_large.fb_in22k_ft_in1k_384 (res 384)

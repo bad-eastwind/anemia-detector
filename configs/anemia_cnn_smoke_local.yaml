@@ -1,0 +1,17 @@
+# LOCAL SMOKE TEST (MacBook M1 Pro / MPS) for the deep ROI anemia classifier.
+# Proves the code path runs. Tiny CNN, low res, few epochs, subset. NOT for accuracy.
+# Uses a small CNN backbone (resnet18) — MPS-safe. HPC config uses ViT/ConvNeXt-large.
+name: anemia_cnn_smoke
+backbone: resnet18
+target: classify        # classify | regress
+res: 192
+bs: 8
+epochs: 2
+lr: 3.0e-4
+weight_decay: 0.01
+num_workers: 2
+amp: false
+folds: 2
+subset: 40
+modes: [cv, loco]
+seed: 42

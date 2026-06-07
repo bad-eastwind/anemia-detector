@@ -1,0 +1,20 @@
+# Anemia detector — Python 3.12. Versions verified locally (macOS/MPS) on 2026-06-07.
+#
+# IMPORTANT — install torch FIRST, matched to your platform, then `pip install -r requirements.txt`:
+#   HPC/AWS (CUDA 12.x, H100):  pip install torch==2.* torchvision --index-url https://download.pytorch.org/whl/cu124
+#   macOS (MPS):                pip install torch torchvision        # default wheel has MPS
+# (torch/torchvision are intentionally NOT pinned here so each machine gets its right build.)
+
+numpy==2.4.6
+pandas==3.0.3
+pillow==12.2.0
+opencv-python==4.13.0.92
+openpyxl==3.1.5
+python-docx==1.2.0
+PyYAML==6.0.3
+scikit-learn==1.9.0
+albumentations==2.0.8
+segmentation-models-pytorch==0.5.0
+timm==1.0.27
+transformers==5.10.2
+safetensors==0.7.0

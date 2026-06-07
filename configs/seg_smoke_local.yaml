@@ -1,0 +1,21 @@
+# LOCAL SMOKE TEST (MacBook M1 Pro / MPS). Purpose: prove the seg code path runs end-to-end.
+# NOT for real accuracy. Tiny model, tiny res, 2 epochs, 2 folds, 24-patient subset.
+# NOTE: uses a CNN encoder (efficientnet) — MiT/SegFormer backbones do NOT train on MPS
+# (torch-2.12 .view backward bug); use the HPC configs for SegFormer on CUDA.
+name: seg_smoke_local
+arch: unet
+encoder: efficientnet-b3
+encoder_weights: imagenet
+res: 256
+bs: 4
+epochs: 2
+lr: 3.0e-4
+weight_decay: 0.01
+num_workers: 2          # keep low on 16GB unified memory (each macOS worker spawns full torch)
+amp: false              # AMP only helps on CUDA
+aug: light
+folds: 2
+subset: 24              # ~12 per cohort
+modes: [cv]
+seed: 42
+out_subdir: smoke_local
