@@ -28,8 +28,8 @@ from sklearn.model_selection import StratifiedKFold
 import segmentation_models_pytorch as smp
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CACHE = os.path.join(HERE, "..", "outputs", "cache")
-OUT_ROOT = os.path.join(HERE, "..", "outputs", "seg")
+sys.path.insert(0, HERE)
+from paths import CACHE, SEG_OUT as OUT_ROOT, MANIFEST
 NUM_CLASSES = 3
 CLASS_NAMES = ["background", "palpebral", "forniceal"]
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -187,15 +187,17 @@ def train_split(train_uids, val_uids, cfg, tag, save_path=None):
 
     best = {"miou_fg": -1}; m_last = None
     eval_every = max(1, epochs // 10)
+    accum = max(1, cfg.get("grad_accum", 1))   # emulate big batch on small (Kaggle 16GB) GPUs
     for ep in range(epochs):
-        model.train(); t0 = time.time(); tot = 0.0
-        for x, y in tr:
+        model.train(); t0 = time.time(); tot = 0.0; opt.zero_grad()
+        for i, (x, y) in enumerate(tr):
             x, y = x.to(DEVICE), y.to(DEVICE)
-            opt.zero_grad()
             with torch.autocast(device_type=DEVICE.type, enabled=use_amp):
-                loss = crit(model(x), y)
-            scaler.scale(loss).backward(); scaler.step(opt); scaler.update()
-            tot += loss.item()
+                loss = crit(model(x), y) / accum
+            scaler.scale(loss).backward()
+            if (i + 1) % accum == 0:
+                scaler.step(opt); scaler.update(); opt.zero_grad()
+            tot += loss.item() * accum
         sched.step()
         msg = f"[{tag}] ep{ep+1}/{epochs} loss {tot/len(tr):.4f} ({time.time()-t0:.0f}s)"
         if va is not None and ((ep + 1) % eval_every == 0 or ep == epochs - 1):
@@ -214,7 +216,7 @@ def train_split(train_uids, val_uids, cfg, tag, save_path=None):
 
 # ----------------------------- protocols -----------------------------
 def load_manifest(cfg):
-    man = pd.read_csv(os.path.join(HERE, "..", "outputs", "manifest.csv"))
+    man = pd.read_csv(MANIFEST)
     sub = cfg.get("subset")
     if sub:  # quick smoke: balanced-ish subset across cohorts
         man = pd.concat([g.head(max(1, sub // 2)) for _, g in man.groupby("cohort")]).reset_index(drop=True)

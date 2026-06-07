@@ -14,10 +14,7 @@ import pandas as pd
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from data_io import find_patient_files
-
-ROOT = os.path.join(os.path.dirname(__file__), "..", "dataset anemia")
-ROOT = os.path.abspath(ROOT)
-OUT = os.path.join(os.path.dirname(__file__), "..", "outputs", "manifest.csv")
+from paths import DATA_ROOT as ROOT, MANIFEST as OUT
 
 
 def who_anemia(hgb, sex):

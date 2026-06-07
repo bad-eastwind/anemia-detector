@@ -1,0 +1,18 @@
+# KAGGLE (T4/P100, ~16GB, CUDA) — contrastive SSL pretraining on ROI crops, BOTH cohorts.
+# Output encoder initialises the anemia classifier (configs/anemia_cnn_kaggle_ssl.yaml).
+# SimCLR likes large effective batch -> bs 96 x grad_accum 3 = effective 288.
+name: ssl_kaggle
+backbone: resnet50        # MUST equal the anemia_cnn backbone that loads this checkpoint
+res: 224
+bs: 96
+epochs: 300               # SSL needs many epochs on little data; cheap per epoch
+lr: 1.0e-3
+weight_decay: 1.0e-4
+temp: 0.2
+proj_dim: 128
+use_roi: true
+num_workers: 4
+amp: true
+grad_accum: 3
+seed: 42
+# HPC (H100): bump bs 256, grad_accum 1, epochs 500, backbone convnext_large.fb_in22k_ft_in1k

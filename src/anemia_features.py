@@ -12,10 +12,10 @@ import numpy as np
 import cv2
 import pandas as pd
 
+import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
-CACHE = os.path.join(HERE, "..", "outputs", "cache")
-MAN = os.path.join(HERE, "..", "outputs", "manifest.csv")
-OUT = os.path.join(HERE, "..", "outputs", "anemia_features.csv")
+sys.path.insert(0, HERE)
+from paths import CACHE, MANIFEST as MAN, FEATURES as OUT
 
 QUANTILES = [5, 10, 25, 50, 75, 90, 95]
 

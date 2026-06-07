@@ -26,9 +26,7 @@ from sklearn.model_selection import StratifiedKFold
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from anemia_clf import metrics, report, who_label  # reuse exact metric defs
-CACHE = os.path.join(HERE, "..", "outputs", "cache")
-MAN = os.path.join(HERE, "..", "outputs", "manifest.csv")
-OUT_ROOT = os.path.join(HERE, "..", "outputs", "clf")
+from paths import CACHE, MANIFEST as MAN, CLF_OUT as OUT_ROOT, SSL_OUT
 MEAN = (0.485, 0.456, 0.406); STD = (0.229, 0.224, 0.225)
 
 
@@ -93,7 +91,16 @@ class ROIDS(Dataset):
 
 
 def build_backbone(cfg):
-    return timm.create_model(cfg["backbone"], pretrained=True, num_classes=1).to(DEVICE)
+    model = timm.create_model(cfg["backbone"], pretrained=True, num_classes=1)
+    init = cfg.get("init_weights")  # SSL-pretrained encoder checkpoint (heterogeneity-robust)
+    if init:
+        if not os.path.exists(init):                       # fall back to SSL_OUT/<basename>
+            init = os.path.join(SSL_OUT, os.path.basename(init))
+        sd = torch.load(init, map_location="cpu", weights_only=True)
+        sd = sd.get("encoder", sd.get("state_dict", sd))
+        miss, unexp = model.load_state_dict(sd, strict=False)
+        print(f"    loaded SSL init {os.path.basename(init)} (missing {len(miss)}, unexpected {len(unexp)})", flush=True)
+    return model.to(DEVICE)
 
 
 def train_one(tr_df, te_df, cfg, hgb_mean=0.0, hgb_std=1.0):
@@ -111,16 +118,18 @@ def train_one(tr_df, te_df, cfg, hgb_mean=0.0, hgb_std=1.0):
         crit = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([neg / pos], device=DEVICE))
     else:
         crit = nn.MSELoss()
+    accum = max(1, cfg.get("grad_accum", 1))   # emulate big batch on small GPUs
     for ep in range(cfg["epochs"]):
-        model.train(); t0 = time.time()
-        for x, y in tr:
+        model.train(); t0 = time.time(); opt.zero_grad()
+        for i, (x, y) in enumerate(tr):
             x = x.to(DEVICE); y = y.to(DEVICE)
             yt = (y - hgb_mean) / hgb_std if target == "regress" else y
-            opt.zero_grad()
             with torch.autocast(device_type=DEVICE.type, enabled=use_amp):
                 out = model(x).squeeze(1)
-                loss = crit(out, yt)
-            scaler.scale(loss).backward(); scaler.step(opt); scaler.update()
+                loss = crit(out, yt) / accum
+            scaler.scale(loss).backward()
+            if (i + 1) % accum == 0:
+                scaler.step(opt); scaler.update(); opt.zero_grad()
         sched.step()
         if (ep + 1) % max(1, cfg["epochs"] // 5) == 0 or ep == cfg["epochs"] - 1:
             print(f"    ep{ep+1}/{cfg['epochs']} loss {loss.item():.4f} ({time.time()-t0:.0f}s)", flush=True)

@@ -1,0 +1,20 @@
+# KAGGLE (T4/P100, ~16GB, CUDA) — segmentation. Kaggle GPUs are CUDA, so SegFormer/MiT WORKS
+# here (unlike local MPS). Sized for 16GB: MiT-b3 @512, bs6 x grad_accum2 = effective batch 12.
+# Swap arch/encoder to unetplusplus / efficientnet-b4 for the CNN baseline (also fits 16GB).
+name: seg_kaggle
+arch: segformer
+encoder: mit_b3
+encoder_weights: imagenet
+res: 512
+bs: 6
+grad_accum: 2
+epochs: 120
+lr: 6.0e-5
+weight_decay: 0.01
+num_workers: 4
+amp: true
+aug: heavy
+folds: 5
+modes: [cv, loco]         # add 'final' if you have session time; or run modes in separate sessions
+seed: 42
+out_subdir: kaggle_segformer_b3

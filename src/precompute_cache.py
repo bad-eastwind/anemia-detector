@@ -16,15 +16,14 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(__file__))
 from data_io import load_image_rgb, load_label_mask, load_union_fg, find_patient_files
+from paths import DATA_ROOT as ROOT, CACHE, MANIFEST
 
 HERE = os.path.dirname(__file__)
-ROOT = os.path.abspath(os.path.join(HERE, "..", "dataset anemia"))
-CACHE = os.path.abspath(os.path.join(HERE, "..", "outputs", "cache"))
 SIZE = 512
 
 
 def main():
-    man = pd.read_csv(os.path.join(HERE, "..", "outputs", "manifest.csv"))
+    man = pd.read_csv(MANIFEST)
     for sub in ("img", "lbl", "roi"):
         os.makedirs(os.path.join(CACHE, sub), exist_ok=True)
     counts = {0: 0, 1: 0, 2: 0}

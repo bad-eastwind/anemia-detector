@@ -162,4 +162,71 @@ configs unleash the heavy models (SegFormer-B5, UNet++/EfficientNet-B5, ViT-L).
  - Foreground encoding differs by cohort: India = alpha channel, Italy = non-background RGB.
  - WHO anemia: adults, M < 13.0 g/dL, F < 12.0 g/dL. Italy/93 has no Hgb (excluded from anemia).
  - India is 72% anemic, Italy 19% — judge everything by LOCO, not pooled CV.
+
+--------------------------------------------------------------------------------
+ 8. CONTRASTIVE SELF-SUPERVISED PRETRAINING (heterogeneity robustness)  src/ssl_pretrain.py
+--------------------------------------------------------------------------------
+ Why: India vs Italy differ in capture/appearance; a model can learn "which site" instead of
+ pallor. SimCLR (NT-Xent) pretraining on the conjunctiva ROI from BOTH cohorts (label-free, all
+ 218 patients) learns representations invariant to two augmented views -> robust to nuisance
+ illumination/site variation. We then INITIALISE the anemia classifier from this encoder.
+
+ IMPORTANT: pallor IS a colour signal, so the SSL views use geometric + MILD photometric aug
+ only (NO grayscale / strong colour jitter — those would make the encoder blind to anemia).
+
+ Pipeline:
+   # 1) pretrain encoder (label-free):
+   python src/ssl_pretrain.py --config configs/ssl_kaggle.yaml      # -> outputs/ssl/ssl_kaggle.pt
+   # 2) fine-tune anemia classifier FROM that encoder (init_weights set in the config):
+   python src/anemia_cnn.py --config configs/anemia_cnn_kaggle_ssl.yaml
+   # 3) compare LOCO vs the ImageNet-init baseline:
+   python src/anemia_cnn.py --config configs/anemia_cnn_kaggle.yaml
+
+ RULES:
+ - The SSL `backbone` MUST equal the anemia_cnn `backbone` (e.g. both resnet50). On load you
+   should see "loaded SSL init ... (missing 2, unexpected 0)" — the 2 missing keys are the
+   random classifier head; all backbone weights loaded. Many missing/unexpected = backbone mismatch.
+ - SimCLR wants a large effective batch: use bs x grad_accum (configs do this).
+ - Expected gain on 218 images is MODEST; treat it as a domain-robustness regularizer and prove
+   it by LOCO (train India->test Italy / vice-versa), not by pooled CV.
+ - Smoke test locally first: python src/ssl_pretrain.py --config configs/ssl_smoke_local.yaml
+ - (Advanced) the SSL encoder can also init a seg model whose smp encoder is the SAME backbone;
+   not wired by default (smp encoder key names differ) — anemia_cnn is the supported path.
+
+--------------------------------------------------------------------------------
+ 9. RUNNING ON KAGGLE  (T4 x2 / P100, ~16GB, CUDA)
+--------------------------------------------------------------------------------
+ Kaggle GPUs are CUDA, so SegFormer/MiT WORKS on Kaggle (it only fails on the local mac's MPS).
+ You do NOT need to edit any code — only set two env vars (paths) and use the *_kaggle.yaml
+ configs (sized for 16GB). Steps:
+
+ A) Add data: upload `dataset anemia/` as a Kaggle Dataset (e.g. "eyes-defy-anemia"). It mounts
+    read-only at /kaggle/input/eyes-defy-anemia/. Add this repo as a second Dataset or clone it.
+
+ B) In the first notebook cell — enable Internet (Settings -> Internet ON), then:
+      !pip -q install segmentation-models-pytorch==0.5.0 timm albumentations==2.0.8 python-docx
+      import os
+      os.environ["ANEMIA_DATA_ROOT"] = "/kaggle/input/eyes-defy-anemia/dataset anemia"
+      os.environ["ANEMIA_OUT_ROOT"]  = "/kaggle/working/outputs"
+      %cd /kaggle/working/<repo-folder>      # where src/ and configs/ live
+    (torch + torchvision are preinstalled on Kaggle with CUDA — do NOT reinstall them.)
+    If you cannot enable Internet, attach the timm/smp ImageNet weights as a Kaggle Dataset and
+    point HF/torch cache at them, or set encoder_weights: null (scratch — worse accuracy).
+
+ C) One-time prep (writes to /kaggle/working/outputs):
+      !python src/build_manifest.py && python src/precompute_cache.py && python src/anemia_features.py
+
+ D) Train (each fits 16GB; mind the 9–12 h session limit — split modes across sessions if needed):
+      !python src/anemia_clf.py                                              # instant baseline
+      !python src/ssl_pretrain.py --config configs/ssl_kaggle.yaml          # optional SSL
+      !python src/anemia_cnn.py  --config configs/anemia_cnn_kaggle_ssl.yaml
+      !python src/anemia_cnn.py  --config configs/anemia_cnn_kaggle.yaml    # baseline to compare
+      !python src/seg.py --config configs/seg_kaggle.yaml                   # MiT-b3 @512, CV+LOCO
+
+ E) Persistence: everything lands in /kaggle/working/outputs (download it, or "Save Version" to
+    keep). Re-running prep is cheap; cache is regenerable.
+
+ KAGGLE-VS-HPC sizing (already in the *_kaggle.yaml): smaller encoder/res/bs + grad_accum to
+ emulate big batch + amp:true + num_workers:4. For the H100 cluster use the *_hpc.yaml configs
+ (mit_b5 / effb5 @512, big bs, 200 ep). Same code, just a different YAML.
 ================================================================================

@@ -19,9 +19,10 @@ from sklearn.ensemble import (HistGradientBoostingClassifier, HistGradientBoosti
 from sklearn.metrics import roc_auc_score
 
 warnings.filterwarnings("ignore")
+import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
-FEAT = os.path.join(HERE, "..", "outputs", "anemia_features.csv")
-OUT = os.path.join(HERE, "..", "outputs", "clf")
+sys.path.insert(0, HERE)
+from paths import FEATURES as FEAT, CLF_OUT as OUT
 os.makedirs(OUT, exist_ok=True)
 
 DROP = ["uid", "cohort", "anemia", "hgb", "sex"]

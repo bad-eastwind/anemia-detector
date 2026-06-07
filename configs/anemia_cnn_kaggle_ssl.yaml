@@ -1,0 +1,19 @@
+# KAGGLE — same as anemia_cnn_kaggle.yaml but INITIALISED from the contrastive SSL encoder
+# (heterogeneity-robust). Run ssl_pretrain.py with configs/ssl_kaggle.yaml FIRST.
+# backbone MUST match the SSL backbone (resnet50). Compare LOCO vs the ImageNet-init baseline.
+name: anemia_cnn_kaggle_r50_ssl
+backbone: resnet50
+init_weights: outputs/ssl/ssl_kaggle.pt     # produced by ssl_pretrain.py (path relative to repo root,
+                                            # or set ANEMIA_OUT_ROOT and use $OUT/ssl/ssl_kaggle.pt)
+target: regress
+res: 320
+bs: 32
+grad_accum: 1
+epochs: 80
+lr: 3.0e-5
+weight_decay: 0.01
+num_workers: 4
+amp: true
+folds: 5
+modes: [cv, loco]
+seed: 42

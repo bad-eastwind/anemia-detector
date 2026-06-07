@@ -1,0 +1,56 @@
+What method
+
+  SimCLR with NT-Xent loss. No labels used. Pure self-supervision. Goal: learn good encoder weights before the anemia head
+  ever sees Hgb.
+
+  On what data
+
+  - Input = conjunctiva ROI crops (union mask region), not whole eye frame. crop_roi() bbox-crops + zeros non-ROI. So SSL
+  contrasts conjunctiva tissue, not eyelid/skin/background.
+  - Both cohorts mixed, all 218 patients, label-free — including Italy/93 (no Hgb). Unlabeled images become useful.
+  - Reads the 512 cache (img + roi).
+
+  How it works (mechanism)
+
+  Per image, make two augmented views:
+
+  image ──aug──> view1 ─┐
+        └─aug──> view2 ─┘   (different random aug each)
+
+  view_aug() = RandomResizedCrop + flip + affine(rotate/scale/translate) + mild brightness/contrast + light blur + small
+  hue/sat. Then:
+
+  view ─> encoder(timm) ─> feature ─> projection MLP ─> z ─> L2-normalize
+
+  NT-Xent over a batch of N images (2N views):
+  - Positive pair = the two views of the same image → pull together.
+  - Negatives = all other 2N−2 views in batch → push apart.
+  - nt_xent() builds 2N×2N cosine-similarity matrix / temperature, cross-entropy where each view's target = its partner
+  view.
+
+  Net effect: embedding becomes invariant to the augmentations (crop, rotation, illumination, blur) but discriminative
+  between different eyes.
+
+  Why those specific augs (key decision)
+
+  Standard SimCLR uses grayscale + strong color jitter. We deliberately removed those. Pallor is a color/saturation signal —
+  making the encoder color-invariant would erase exactly the anemia cue. So our views vary only nuisance factors (geometry,
+  brightness/exposure, blur), keeping color/pallor intact.
+
+  How it helps our model
+
+  1. Heterogeneity / site shift (the main reason). India vs Italy differ in capture/illumination. By (a) mixing both cohorts
+  unlabeled and (b) forcing invariance to brightness/exposure/crop, the encoder learns conjunctiva features that don't
+  depend on which site/lighting — they transfer across cohorts. That directly targets the LOCO gap (our hardest metric:
+  train Italy→test India was weak, AUC 0.68).
+  2. Tiny labeled set (217). ImageNet init knows generic textures, nothing about conjunctivas. SSL continues pretraining on 
+  the actual domain → a better starting point than ImageNet alone before fine-tuning on scarce Hgb labels.
+  3. Pipeline: SSL encoder → anemia_cnn init_weights (strict=False, only backbone loaded, head random) → fine-tune anemia
+  head on top of domain-adapted, site-robust features.
+
+  Honest scope
+
+  - Applied to the anemia classifier encoder only, not segmentation (smp encoder key names differ — not wired).
+  - 218 images is small for SimCLR (it likes big batches) → we use grad_accum to fake a larger batch. Expect a modest gain.
+  - Must be proven by LOCO (SSL-init vs ImageNet-init: anemia_cnn_kaggle_ssl.yaml vs anemia_cnn_kaggle.yaml). If LOCO
+  doesn't improve, SSL isn't earning its keep here — that's the test.

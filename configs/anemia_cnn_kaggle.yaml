@@ -1,0 +1,17 @@
+# KAGGLE (T4/P100, ~16GB, CUDA) — deep ROI anemia classifier, ImageNet init (baseline).
+# ResNet50 @320, Hgb-regression -> WHO threshold (prevalence-robust; LOCO winner).
+# Compare against the SSL-initialised version (anemia_cnn_kaggle_ssl.yaml).
+name: anemia_cnn_kaggle_r50
+backbone: resnet50
+target: regress           # regress (Hgb->WHO) recommended; or classify
+res: 320
+bs: 32
+grad_accum: 1
+epochs: 80
+lr: 3.0e-5
+weight_decay: 0.01
+num_workers: 4
+amp: true
+folds: 5
+modes: [cv, loco]
+seed: 42

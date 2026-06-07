@@ -1,0 +1,16 @@
+# LOCAL SMOKE — contrastive SSL pretraining (MacBook M1 Pro / MPS). Proves code path only.
+name: ssl_smoke
+backbone: resnet18        # must match the anemia_cnn backbone you later init from this
+res: 128
+bs: 16
+epochs: 2
+lr: 1.0e-3
+weight_decay: 1.0e-4
+temp: 0.2
+proj_dim: 128
+use_roi: true             # contrast conjunctiva ROI crops (not whole frame)
+num_workers: 2
+amp: false
+grad_accum: 1
+subset: 40
+seed: 42
