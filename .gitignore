@@ -1,0 +1,38 @@
+# ---- Dataset (large; do NOT push) ----
+dataset anemia/
+
+# ---- Python env ----
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# ---- Generated caches & model weights (large / regenerable) ----
+outputs/cache/
+outputs/seg/logs/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.npy
+*.npz
+
+# ---- Logs / tmp ----
+*.log
+nohup.out
+
+# ---- OS / editor junk ----
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# ---- Claude ----
+CLAUDE.md
+.claude/
+
+# Tracked on purpose (small, valuable): outputs/manifest.csv, outputs/anemia_features.csv,
+# outputs/{seg,clf}/*.json result files, configs/, src/, guide.txt, requirements.txt
