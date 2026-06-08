@@ -10,6 +10,7 @@ sens/spec split already separates anemic vs non-anemic performance.
 import os, json, warnings
 import numpy as np
 import pandas as pd
+import joblib
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -145,6 +146,34 @@ def loco_regress(df, X, model):
     return res
 
 
+def fit_final(df, X, feat_cols, model="hgb"):
+    """Fit the DEPLOYABLE anemia route on ALL data and persist it (additive to CV/LOCO eval).
+
+    Project decision: the winner is Hgb-regression -> WHO sex threshold (prevalence-robust),
+    NOT direct classification. So we refit the regressor (`make_reg`, same as the evaluated
+    route) on every patient and joblib.dump a self-describing bundle for inference. The GBM is
+    tree-based -> no scaler (mirrors make_reg('hgb')); `feat_cols` pins the exact feature order
+    the model expects, and `age_default` imputes age when a fresh image has no recorded age.
+    """
+    reg = make_reg(model)
+    reg.fit(X, df["hgb"].values)
+    bundle = {
+        "estimator": reg,
+        "feat_cols": list(feat_cols),
+        "route": "regress_hgb_then_who_threshold",
+        "model": model,
+        "who_cutoffs": {"M": 13.0, "F": 12.0},   # WHO adult: M<13.0, F<12.0 g/dL
+        "age_default": float(df["age"].median()),
+        "feat_res": 512,                          # features computed on the 512px cache
+        "n_train": int(len(df)),
+    }
+    path = os.path.join(OUT, "anemia_gbm_final.joblib")
+    joblib.dump(bundle, path)
+    mae = float(np.abs(reg.predict(X) - df["hgb"].values).mean())
+    print(f"\nfinal {model} regressor fit on all {len(df)} patients (train Hgb MAE {mae:.3f}) -> {path}")
+    return path
+
+
 def main():
     df = pd.read_csv(FEAT)
     feat_cols = [c for c in df.columns if c not in DROP]
@@ -161,6 +190,9 @@ def main():
 
     with open(os.path.join(OUT, "anemia_results.json"), "w") as f:
         json.dump(summary, f, indent=2)
+
+    # deployable model: refit winning regression route on all data + persist (additive)
+    fit_final(df, X, feat_cols, model="hgb")
 
     def line(tag, r):
         o = r["overall"] if "overall" in r else r

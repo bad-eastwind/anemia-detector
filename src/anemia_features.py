@@ -27,11 +27,18 @@ def chan_stats(prefix, vals, out):
         out[f"{prefix}_p{q}"] = float(np.percentile(vals, q))
 
 
-def extract_one(uid):
-    img = cv2.imread(os.path.join(CACHE, "img", uid + ".png"))  # BGR
-    roi = cv2.imread(os.path.join(CACHE, "roi", uid + ".png"), 0) > 127
+def features_from_arrays(img_bgr, roi):
+    """Compute the pallor/color/texture feature dict from an in-memory BGR image + bool ROI.
+
+    Shared core for both paths so feature math is defined exactly once:
+      - batch (extract_one): reads the 512px cache,
+      - single-image inference (infer_pipeline): predicted ROI from the seg model.
+    `img_bgr` is HxWx3 uint8 (cv2/BGR), `roi` is HxW bool, same HxW. Returns a feature dict
+    WITHOUT uid/labels (caller prepends those), or None if the ROI is too small to trust.
+    """
     if roi.sum() < 50:
         return None
+    img = img_bgr
     rgb = img[:, :, ::-1].astype(np.float32)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.float32)
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB).astype(np.float32)
@@ -43,7 +50,7 @@ def extract_one(uid):
     L, A, Bb = lab[..., 0][m], lab[..., 1][m], lab[..., 2][m]
     Y, Cr, Cb = ycc[..., 0][m], ycc[..., 1][m], ycc[..., 2][m]
 
-    f = {"uid": uid, "roi_frac": float(m.mean())}
+    f = {"roi_frac": float(m.mean())}
     for name, v in [("R", R), ("G", G), ("B", B), ("H", H), ("S", S), ("V", V),
                     ("L", L), ("a", A), ("bb", Bb), ("Y", Y), ("Cr", Cr), ("Cb", Cb)]:
         chan_stats(name, v, f)
@@ -62,6 +69,14 @@ def extract_one(uid):
     f["S_lowfrac"] = float((S < 60).mean())
     f["a_minus128_mean"] = float((A - 128).mean())   # redness around neutral 128
     return f
+
+
+def extract_one(uid):
+    """Batch path: read the 512px cache for `uid`, return feature dict (uid first) or None."""
+    img = cv2.imread(os.path.join(CACHE, "img", uid + ".png"))      # BGR
+    roi = cv2.imread(os.path.join(CACHE, "roi", uid + ".png"), 0) > 127
+    f = features_from_arrays(img, roi)
+    return {"uid": uid, **f} if f is not None else None
 
 
 def main():

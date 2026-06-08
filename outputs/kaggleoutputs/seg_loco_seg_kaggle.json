@@ -1,0 +1,56 @@
+{
+  "protocol": "leave_one_cohort_out",
+  "config": {
+    "name": "seg_kaggle",
+    "arch": "segformer",
+    "encoder": "mit_b3",
+    "encoder_weights": "imagenet",
+    "res": 512,
+    "bs": 6,
+    "grad_accum": 2,
+    "epochs": 120,
+    "lr": 6e-05,
+    "weight_decay": 0.01,
+    "num_workers": 4,
+    "amp": true,
+    "aug": "heavy",
+    "folds": 5,
+    "modes": [
+      "cv",
+      "loco"
+    ],
+    "seed": 42,
+    "out_subdir": "kaggle_segformer_b3"
+  },
+  "classes": [
+    "background",
+    "palpebral",
+    "forniceal"
+  ],
+  "results": {
+    "train_India_test_Italy": {
+      "iou": [
+        0.9724660446389995,
+        0.7018203115151183,
+        0.7477655567166163
+      ],
+      "dice": [
+        0.9860408469713152,
+        0.824787795475649,
+        0.8556817633154209
+      ]
+    },
+    "train_Italy_test_India": {
+      "iou": [
+        0.9734748293515358,
+        0.6977139861451217,
+        0.7806822945189272
+      ],
+      "dice": [
+        0.9865591543130144,
+        0.8219452650317987,
+        0.8768350164674804
+      ]
+    }
+  }
+}

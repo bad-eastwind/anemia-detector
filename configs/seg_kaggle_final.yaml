@@ -1,0 +1,23 @@
+# KAGGLE final DEPLOYABLE segmentation (T4/P100, ~16GB, CUDA). Trains on ALL 218 patients
+# (no val split) and saves the checkpoint for inference (src/infer_pipeline.py):
+#   outputs/seg/kaggle_segformer_b3/seg_kaggle_final.pt   ({state_dict, cfg})
+# Standalone: runs ONLY the `final` protocol -> cheaper to (re)run than cv+loco. Same model
+# sizing as seg_kaggle.yaml. Pick the WINNING arch/encoder from your cv/loco run (judge by
+# LOCO IoU) and set it here before training the final model.
+name: seg_kaggle             # -> checkpoint name seg_kaggle_final.pt
+arch: segformer
+encoder: mit_b3
+encoder_weights: imagenet
+res: 512
+bs: 6
+grad_accum: 2
+epochs: 120
+lr: 6.0e-5
+weight_decay: 0.01
+num_workers: 4
+amp: true
+aug: heavy
+folds: 5
+modes: [final]               # run_final -> train_split(all uids, val=None, save_path=...)
+seed: 42
+out_subdir: kaggle_segformer_b3
