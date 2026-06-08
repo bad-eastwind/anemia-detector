@@ -6,8 +6,9 @@ arch: segformer
 encoder: mit_b3
 encoder_weights: imagenet
 res: 512
-bs: 6
-grad_accum: 2
+bs: 12              # T4 x2: ~6 imgs/GPU
+grad_accum: 1       # effective batch 12, split across both T4s
+multi_gpu: true     # nn.DataParallel across the 2 T4s (no-op on 1 GPU / HPC / local)
 epochs: 120
 lr: 6.0e-5
 weight_decay: 0.01

@@ -178,6 +178,11 @@ def train_split(train_uids, val_uids, cfg, tag, save_path=None):
     va = (DataLoader(SegDS(val_uids, False, cfg), batch_size=bs, shuffle=False, num_workers=nw,
                      pin_memory=DEVICE.type == "cuda") if val_uids is not None and len(val_uids) else None)
     model = build_model(cfg).to(DEVICE)
+    # opt-in multi-GPU (e.g. Kaggle T4 x2): split each batch across cards. Single-process, no
+    # code change for HPC/local. Guarded by device count so it's a no-op on 1 GPU / MPS / CPU.
+    if cfg.get("multi_gpu") and DEVICE.type == "cuda" and torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model)
+        print(f"DataParallel across {torch.cuda.device_count()} GPUs", flush=True)
     crit = DiceCELoss(class_weights(train_uids).to(DEVICE))
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg.get("weight_decay", 1e-2))
     epochs = cfg["epochs"]
@@ -210,7 +215,9 @@ def train_split(train_uids, val_uids, cfg, tag, save_path=None):
         print(msg, flush=True)
     reported = m_last if va is not None else evaluate(model, tr)
     if save_path:
-        torch.save({"state_dict": model.state_dict(), "cfg": cfg}, save_path)
+        # unwrap DataParallel so checkpoint keys have NO 'module.' prefix -> infer loads cleanly
+        core = model.module if isinstance(model, nn.DataParallel) else model
+        torch.save({"state_dict": core.state_dict(), "cfg": cfg}, save_path)
     return reported, model
 
 
