@@ -1,0 +1,20 @@
+flowchart TB
+    ROOT["Domain shift: India + Italy to Ghana"] --> REG[Region]
+    ROOT --> AGE[Age]
+    ROOT --> CLI[Clinical]
+    ROOT --> PIPE[Pipeline]
+    REG --> R1[different skin tone]
+    REG --> R2[different camera and lighting]
+    AGE --> A1[adults to infants]
+    AGE --> A2[age feature far out of range]
+    CLI --> C1["adult WHO cutoff vs pediatric near 11"]
+    CLI --> C2[different Hgb distribution]
+    PIPE --> P1[no color correction applied]
+    PIPE --> P2[pallor signal is camera dependent]
+
+    classDef root fill:#E4D8F0,stroke:#7B6CA8,color:#3A2E5C;
+    classDef br fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    classDef lf fill:#FFE5D9,stroke:#E07A5F,color:#6B2D1B;
+    class ROOT root
+    class REG,AGE,CLI,PIPE br
+    class R1,R2,A1,A2,C1,C2,P1,P2 lf

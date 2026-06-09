@@ -1,0 +1,14 @@
+flowchart TB
+    D1[Device-agnostic: CUDA &gt; MPS &gt; CPU, AMP on CUDA] --> OK
+    D2[Segment with SegFormer, judge by LOCO IoU] --> OK
+    D3[Regress Hgb then WHO threshold, not fixed 0.5] --> OK
+    D4[Deploy features + GBM, keep deep route on shelf] --> OK
+    D5[Report at converged final epoch: val == test in CV/LOCO] --> OK
+    D6[SSL pallor-preserving augs only; modest gain, not shipped] --> OK
+    D7[Pin scikit-learn 1.6.1 across train and inference] --> OK
+    OK[Sound, evidence-backed choices]
+
+    classDef win fill:#B7E4C7,stroke:#52796F,color:#1B4332;
+    classDef neu fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    class OK win
+    class D1,D2,D3,D4,D5,D6,D7 neu

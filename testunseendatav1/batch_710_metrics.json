@@ -1,0 +1,57 @@
+{
+  "n": 709,
+  "n_failed": 1,
+  "route1_seg_clf": {
+    "n": 709,
+    "mae": 2.617,
+    "rmse": 3.33,
+    "bias_pred_minus_gt": 1.991,
+    "pearson_r": 0.004
+  },
+  "route2_clf_only": {
+    "n": 709,
+    "mae": 2.636,
+    "rmse": 3.389,
+    "bias_pred_minus_gt": 2.13,
+    "pearson_r": 0.016
+  },
+  "label_agreement_vs_REMARK": {
+    "route1_adultWHO": {
+      "acc": 0.513,
+      "sens": 0.556,
+      "spec": 0.451,
+      "tp": 235,
+      "tn": 129,
+      "fp": 157,
+      "fn": 188
+    },
+    "route2_adultWHO": {
+      "acc": 0.513,
+      "sens": 0.565,
+      "spec": 0.437,
+      "tp": 239,
+      "tn": 125,
+      "fp": 161,
+      "fn": 184
+    },
+    "route1_pediatric_lt11": {
+      "acc": 0.426,
+      "sens": 0.175,
+      "spec": 0.797,
+      "tp": 74,
+      "tn": 228,
+      "fp": 58,
+      "fn": 349
+    },
+    "route2_pediatric_lt11": {
+      "acc": 0.453,
+      "sens": 0.151,
+      "spec": 0.899,
+      "tp": 64,
+      "tn": 257,
+      "fp": 29,
+      "fn": 359
+    }
+  },
+  "gt_anemic_prevalence": 0.597
+}

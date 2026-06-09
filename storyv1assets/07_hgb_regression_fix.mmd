@@ -1,0 +1,11 @@
+flowchart LR
+    X[ROI pallor features] --> R[Regress continuous Hgb g/dL]
+    R --> H{Apply WHO sex cutoff}
+    H -->|Male Hgb &lt; 13.0| AN[Anemic]
+    H -->|Female Hgb &lt; 12.0| AN
+    H -->|else| NO[Non-anemic]
+
+    classDef proc fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    classDef win  fill:#B7E4C7,stroke:#52796F,color:#1B4332;
+    class X,R,H proc
+    class AN,NO win

@@ -1,0 +1,12 @@
+flowchart LR
+    ACT["Actual Hgb spans 4 to 15 g/dL"] --> MODEL["GBM applied to Ghana data"]
+    MODEL --> PRED["Predictions collapse to an 11 to 14 band"]
+    PRED --> RR["Pearson r approx 0 - no correlation"]
+    PRED --> BB["Bias +2 g/dL - systematic over-prediction"]
+    RR --> FAIL["Does not transfer"]
+    BB --> FAIL
+
+    classDef neu fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    classDef fail fill:#FAD2E1,stroke:#C9184A,color:#590D22;
+    class ACT,MODEL,PRED neu
+    class RR,BB,FAIL fail

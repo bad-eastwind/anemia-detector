@@ -1,0 +1,14 @@
+flowchart LR
+    A[Eyelid photo] --> B[Segment conjunctiva<br/>palpebral + forniceal]
+    B --> C[ROI = pallor region]
+    C --> D[Color / pallor features]
+    D --> E[Predict Hemoglobin g/dL]
+    E --> F[WHO sex threshold<br/>M&lt;13.0  F&lt;12.0]
+    F --> G[Anemic / Non-anemic]
+
+    classDef data fill:#FFF3B0,stroke:#B69121,color:#5A4500;
+    classDef proc fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    classDef out  fill:#B7E4C7,stroke:#52796F,color:#1B4332;
+    class A,C data
+    class B,D,E,F proc
+    class G out

@@ -1,0 +1,13 @@
+flowchart TB
+    IMG2[CP-AnemiC crop<br/>alpha = provided mask] --> R1[Route 1: our SegFormer finds ROI]
+    IMG2 --> R2[Route 2: use provided alpha mask as ROI]
+    R1 --> CLF[Same GBM classifier]
+    R2 --> CLF
+    CLF --> AGG[Aggregate n=709<br/>1 corrupt PNG]
+
+    classDef data fill:#FFF3B0,stroke:#B69121,color:#5A4500;
+    classDef proc fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    classDef res  fill:#FAD2E1,stroke:#C9184A,color:#590D22;
+    class IMG2 data
+    class R1,R2,CLF proc
+    class AGG res

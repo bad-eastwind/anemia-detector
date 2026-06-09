@@ -1,0 +1,32 @@
+flowchart LR
+    subgraph src
+        P[paths.py] 
+        DIO[data_io.py]
+        SEGc[seg.py]
+        FEATc[anemia_features.py]
+        CLFc[anemia_clf.py]
+        CNNc[anemia_cnn.py]
+        SSLc[ssl_pretrain.py]
+        INFc[infer_pipeline.py]
+        CPb[batch_cpanemic.py]
+    end
+    subgraph outputs
+        SEGo[seg/...final.pt]
+        CLFo[clf/anemia_gbm_final.joblib]
+        SSLo[ssl/...pt]
+    end
+    subgraph eval
+        TUD[testunseendatav1/<br/>csv + metrics + scatter plots]
+    end
+    SEGc --> SEGo
+    CLFc --> CLFo
+    SSLc --> SSLo
+    INFc --> TUD
+    CPb --> TUD
+
+    classDef code fill:#E4D8F0,stroke:#7B6CA8,color:#3A2E5C;
+    classDef art  fill:#FFF3B0,stroke:#B69121,color:#5A4500;
+    classDef ev   fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    class P,DIO,SEGc,FEATc,CLFc,CNNc,SSLc,INFc,CPb code
+    class SEGo,CLFo,SSLo art
+    class TUD ev

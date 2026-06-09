@@ -1,0 +1,39 @@
+{
+  "image_id": "Image_657",
+  "sex": "Male",
+  "age_months": 36,
+  "age_years": 3.0,
+  "gt_hgb": 9.2,
+  "gt_remark": "Anemic",
+  "severity": "Moderate",
+  "route1_seg_clf": {
+    "image": "/Users/anweshkabiraj/Projects/Research/anemiadetector/CP-AnemiC dataset (extract/Images/Image_657.png",
+    "sex": "M",
+    "age": 3.0,
+    "age_imputed": false,
+    "pred_hgb": 15.12,
+    "who_cutoff": 13.0,
+    "anemic": false,
+    "label": "non-anemic",
+    "roi_frac": 0.1257,
+    "device": "cpu",
+    "seg_class_pct": {
+      "0": 87.4,
+      "1": 4.9,
+      "2": 7.7
+    }
+  },
+  "route2_clf_only_providedmask": {
+    "pred_hgb": 12.32,
+    "who_cutoff": 13.0,
+    "anemic": true,
+    "label": "anemic",
+    "roi_frac": 0.2635
+  },
+  "hgb_delta_r1_minus_r2": 2.8,
+  "abs_err_vs_gt": {
+    "route1": 5.92,
+    "route2": 3.12
+  },
+  "device": "cpu"
+}

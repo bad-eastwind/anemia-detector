@@ -1,0 +1,17 @@
+flowchart LR
+    IMG[ROI crop] --> V1[Augmented view 1]
+    IMG --> V2[Augmented view 2]
+    V1 --> E1[Encoder timm backbone]
+    V2 --> E2[Encoder shared weights]
+    E1 --> P1[Projection head MLP 2048 to 128]
+    E2 --> P2[Projection head]
+    P1 --> L[NT-Xent loss]
+    P2 --> L
+    L --> PULL[Pull the two views together<br/>push all other crops apart]
+
+    classDef data fill:#FFF3B0,stroke:#B69121,color:#5A4500;
+    classDef proc fill:#E4D8F0,stroke:#7B6CA8,color:#3A2E5C;
+    classDef loss fill:#FAD2E1,stroke:#C9184A,color:#590D22;
+    class IMG,V1,V2 data
+    class E1,E2,P1,P2 proc
+    class L,PULL loss

@@ -1,0 +1,17 @@
+flowchart LR
+    subgraph KEEP["Allowed - nuisance only"]
+        K1[crop / flip / affine]
+        K2[mild brightness-contrast]
+        K3[slight blur, tiny hue-sat]
+    end
+    subgraph BAN["Banned - destroys the signal"]
+        B1[grayscale]
+        B2[strong color jitter]
+    end
+    KEEP --> GOOD[Invariant to site, sensitive to pallor]
+    BAN --> BADX[Invariant to pallor = blind to anemia]
+
+    classDef ok  fill:#D8F3DC,stroke:#52796F,color:#1B4332;
+    classDef no  fill:#FAD2E1,stroke:#C9184A,color:#590D22;
+    class K1,K2,K3,GOOD ok
+    class B1,B2,BADX no

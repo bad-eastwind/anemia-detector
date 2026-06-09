@@ -1,0 +1,11 @@
+flowchart TB
+    H1["Apple MPS: MiT backward .view bug"] --> F1["SegFormer cannot train locally; smoke on EfficientNet"]
+    H2["Kaggle P100 is CUDA sm_60; new torch is sm_70+ only"] --> F2["no kernel image error; switch to T4 x2"]
+    H3["Second T4 idle wasted quota"] --> F3["add nn.DataParallel via multi_gpu flag; unwrap module on save"]
+    H4["sklearn skew: trained 1.6.1, local 1.9.0"] --> F4["joblib ModuleNotFoundError _loss; pin scikit-learn 1.6.1"]
+    H5["Bare python in a notebook cell"] --> F5["SyntaxError; prefix shell lines with a bang"]
+
+    classDef fail fill:#FAD2E1,stroke:#C9184A,color:#590D22;
+    classDef fix fill:#D8F3DC,stroke:#52796F,color:#1B4332;
+    class H1,H2,H3,H4,H5 fail
+    class F1,F2,F3,F4,F5 fix

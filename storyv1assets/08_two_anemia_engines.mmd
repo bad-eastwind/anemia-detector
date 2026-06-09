@@ -1,0 +1,16 @@
+flowchart TB
+    ROUTE{Anemia model} --> A[Handcrafted features + GBM<br/>anemia_clf.py, CPU]
+    ROUTE --> B[Deep ROI ViT / CNN<br/>anemia_cnn.py, GPU]
+
+    A --> AR[Pooled CV AUC approx 0.88<br/>LOCO India to Italy AUC 0.903, acc 0.78<br/>Italy to India harder AUC 0.68]
+    B --> BR[Heavier, GPU-bound,<br/>no clear LOCO win over GBM]
+
+    AR --> DEP[Deployed: GBM regressor<br/>anemia_gbm_final.joblib]
+    BR --> SHELF[Kept as a research route]
+
+    classDef proc fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    classDef win  fill:#B7E4C7,stroke:#52796F,color:#1B4332;
+    classDef neu  fill:#E2ECE9,stroke:#84A98C,color:#1B4332;
+    class A,B,ROUTE proc
+    class AR,DEP win
+    class BR,SHELF neu

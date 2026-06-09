@@ -1,0 +1,27 @@
+flowchart TB
+    ROOT[Make it robust] --> COL[Color first]
+    ROOT --> DA["Use target data - DA"]
+    ROOT --> DG["No target data - DG"]
+    ROOT --> DEC[Decision layer]
+    ROOT --> SAF[Safety]
+    COL --> COL1["color constancy and white balance"]
+    COL --> COL2["Reinhard transfer to source domain"]
+    COL --> COL3["sclera or skin as internal white reference"]
+    DA --> DA1["re-fit the GBM head on a small Ghana split"]
+    DA --> DA2["recalibrate only if rank preserved"]
+    DA --> DA3["feature alignment CORAL / MMD / DANN"]
+    DG --> DG1[pool more source cohorts]
+    DG --> DG2["illumination-only augmentation, never grayscale"]
+    DG --> DG3["worst-group objectives GroupDRO / IRM"]
+    DG --> DG4[SSL on unlabeled target images]
+    DEC --> DEC1["population-correct cutoffs pediatric under 11"]
+    DEC --> DEC2[age and altitude adjustments]
+    SAF --> SAF1[out-of-distribution detection]
+    SAF --> SAF2[abstain instead of guessing the mean]
+
+    classDef root fill:#E4D8F0,stroke:#7B6CA8,color:#3A2E5C;
+    classDef br fill:#B7E4C7,stroke:#52796F,color:#1B4332;
+    classDef lf fill:#E2ECE9,stroke:#84A98C,color:#1B4332;
+    class ROOT root
+    class COL,DA,DG,DEC,SAF br
+    class COL1,COL2,COL3,DA1,DA2,DA3,DG1,DG2,DG3,DG4,DEC1,DEC2,SAF1,SAF2 lf

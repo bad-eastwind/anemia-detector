@@ -1,0 +1,11 @@
+sequenceDiagram
+    participant SSL as ssl_pretrain.py
+    participant Disk as SSL checkpoint
+    participant CNN as anemia_cnn.py
+
+    SSL->>SSL: SimCLR on ROI crops (both cohorts, label-free)
+    SSL->>Disk: save encoder state_dict + backbone name
+    CNN->>Disk: init_weights = that checkpoint
+    Disk-->>CNN: load encoder (strict=False, head ignored)
+    CNN->>CNN: fine-tune on Hgb (MSE) or anemia (BCE)
+    Note over SSL,CNN: SSL backbone MUST equal anemia backbone<br/>or the state_dict keys will not match

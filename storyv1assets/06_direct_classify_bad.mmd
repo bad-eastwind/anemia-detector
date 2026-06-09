@@ -1,0 +1,11 @@
+flowchart LR
+    subgraph BAD["Direct binary classify at fixed 0.5"]
+        T1[Train India 72% anemic] --> T2[Decision boundary<br/>tuned to 'mostly anemic']
+        T2 --> T3[Test Italy 19% anemic]
+        T3 --> T4[Mass false positives<br/>boundary in wrong place]
+    end
+
+    classDef fail fill:#FAD2E1,stroke:#C9184A,color:#590D22;
+    classDef neu  fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    class T4 fail
+    class T1,T2,T3 neu

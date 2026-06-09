@@ -1,0 +1,22 @@
+flowchart LR
+    subgraph TRAIN["Kaggle / HPC - train once on all data"]
+        SF[seg final mode] --> PT[seg_kaggle_final.pt<br/>state_dict + cfg]
+        GB[anemia_clf fit_final] --> JL[anemia_gbm_final.joblib<br/>estimator + feat order + cutoffs]
+    end
+    subgraph INFER["Local - infer_pipeline.py on one fresh image"]
+        IMGN[New eyelid photo + sex] --> SEG[Load SegFormer .pt]
+        SEG --> ROIp[Predicted ROI = palpebral + forniceal]
+        ROIp --> FEAT[features_from_arrays at 512px]
+        FEAT --> GBMp[Load GBM .joblib]
+        GBMp --> HGBp[Predicted Hgb]
+        HGBp --> LAB[WHO sex threshold -> label]
+    end
+    PT -.downloaded.-> SEG
+    JL -.downloaded.-> GBMp
+
+    classDef tr fill:#E4D8F0,stroke:#7B6CA8,color:#3A2E5C;
+    classDef inf fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    classDef out fill:#B7E4C7,stroke:#52796F,color:#1B4332;
+    class SF,GB,PT,JL tr
+    class IMGN,SEG,ROIp,FEAT,GBMp,HGBp inf
+    class LAB out

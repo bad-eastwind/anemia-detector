@@ -1,0 +1,25 @@
+flowchart TB
+    START[Segment 3 classes<br/>bg / palpebral / forniceal<br/>512px, CE + Dice, heavy aug] --> C1
+    START --> C2
+
+    subgraph C1["SegFormer - MiT-b3 / b5 backbone"]
+        S1[Global self-attention<br/>good for thin curved ROI]
+        S1 --> SMPS[On Apple MPS:<br/>backward .view bug<br/>cannot train]
+        S1 --> SCUDA[On CUDA Kaggle/HPC:<br/>trains fine, clean masks]
+    end
+
+    subgraph C2["UNet++ / EfficientNet-B5"]
+        U1[CNN encoder-decoder<br/>MPS-safe]
+        U1 --> UROLE[Local smoke + CNN baseline]
+    end
+
+    SCUDA --> PICK{Pick winner<br/>by LOCO IoU}
+    UROLE --> PICK
+    PICK --> WIN[Deployed: SegFormer MiT-b3<br/>seg_kaggle_final.pt]
+
+    classDef win  fill:#B7E4C7,stroke:#52796F,color:#1B4332;
+    classDef fail fill:#FAD2E1,stroke:#C9184A,color:#590D22;
+    classDef neu  fill:#CDE7F0,stroke:#468FAF,color:#012A4A;
+    class WIN,SCUDA win
+    class SMPS fail
+    class S1,U1,UROLE,START,PICK neu

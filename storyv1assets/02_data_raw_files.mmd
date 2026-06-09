@@ -1,0 +1,19 @@
+flowchart TB
+    subgraph RAW["Raw files - landmines"]
+        J[JPG landscape<br/>EXIF orient 6] -->|exif_transpose| JP[Portrait RGB]
+        M[Mask PNG<br/>corrupt iCCP chunk] -->|PIL fails -> OpenCV reads| MM[Mask raster]
+        MM --> ENC{Foreground<br/>encoding?}
+        ENC -->|India| AL[ALPHA channel 0/255]
+        ENC -->|Italy| RGBN[non-background RGB]
+    end
+    JP --> CACHE[512px cache<br/>img / lbl / roi]
+    AL --> CACHE
+    RGBN --> CACHE
+    CACHE --> USE[Training + features]
+
+    classDef trap fill:#FAD2E1,stroke:#C9184A,color:#590D22;
+    classDef fix  fill:#D8F3DC,stroke:#52796F,color:#1B4332;
+    classDef store fill:#E4D8F0,stroke:#7B6CA8,color:#3A2E5C;
+    class J,M,ENC trap
+    class JP,MM,AL,RGBN fix
+    class CACHE,USE store

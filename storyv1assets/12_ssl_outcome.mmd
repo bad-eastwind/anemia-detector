@@ -1,0 +1,8 @@
+flowchart LR
+    SSLp[SSL NT-Xent pretrain] --> GAIN{LOCO improvement?}
+    GAIN -->|small, not decisive| KEEP[Kept in codebase,<br/>left out of deployed model]
+
+    classDef neu fill:#E2ECE9,stroke:#84A98C,color:#1B4332;
+    classDef warm fill:#FFE5D9,stroke:#E07A5F,color:#6B2D1B;
+    class SSLp neu
+    class GAIN,KEEP warm
