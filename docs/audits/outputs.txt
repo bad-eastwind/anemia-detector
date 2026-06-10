@@ -1,4 +1,4 @@
-Here's the consolidated table of everything observed today:
+
 
   ┌───────────────────────────────┬─────────────────┬───────────────────┬──────────────────────┬──────────────────────┐
   │              Run              │     Metric      │     Pooled CV     │   LOCO India→Italy   │   LOCO Italy→India   │
