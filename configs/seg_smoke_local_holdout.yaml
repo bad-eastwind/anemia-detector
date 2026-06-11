@@ -1,0 +1,18 @@
+# LOCAL SMOKE — holdout 80/10/10. Same MPS caveats as seg_smoke_local.yaml:
+# CNN encoder only (efficientnet), no MiT/SegFormer on MPS. 2 epochs, tiny subset.
+name: seg_smoke_holdout
+arch: unet
+encoder: efficientnet-b3
+encoder_weights: imagenet
+res: 256
+bs: 4
+epochs: 2
+lr: 3.0e-4
+weight_decay: 0.01
+num_workers: 2
+amp: false
+aug: light
+subset: 30              # ~15 per cohort; train≈24, val≈3, test≈3
+modes: [holdout]
+seed: 42
+out_subdir: smoke_holdout

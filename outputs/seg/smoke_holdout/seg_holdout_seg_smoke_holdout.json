@@ -1,0 +1,58 @@
+{
+  "protocol": "holdout_80_10_10",
+  "n_train": 24,
+  "n_val": 3,
+  "n_test": 3,
+  "config": {
+    "name": "seg_smoke_holdout",
+    "arch": "unet",
+    "encoder": "efficientnet-b3",
+    "encoder_weights": "imagenet",
+    "res": 256,
+    "bs": 4,
+    "epochs": 2,
+    "lr": 0.0003,
+    "weight_decay": 0.01,
+    "num_workers": 2,
+    "amp": false,
+    "aug": "light",
+    "subset": 30,
+    "modes": [
+      "holdout"
+    ],
+    "seed": 42,
+    "out_subdir": "smoke_holdout"
+  },
+  "classes": [
+    "background",
+    "palpebral",
+    "forniceal"
+  ],
+  "val_metrics": {
+    "iou": [
+      0.05407978213848907,
+      0.028008229906418,
+      0.119260733824077
+    ],
+    "dice": [
+      0.10261041536869903,
+      0.05449028342694816,
+      0.21310625883677634
+    ]
+  },
+  "test_metrics": {
+    "iou": [
+      0.04502857142857143,
+      0.016291710937620302,
+      0.08841265084458348
+    ],
+    "dice": [
+      0.08617672790901137,
+      0.03206109183472477,
+      0.16246163764446742
+    ]
+  },
+  "weights": "/Users/anweshkabiraj/Projects/Research/anemiadetector/outputs/seg/smoke_holdout/seg_smoke_holdout_holdout.pt",
+  "miou_fg": 0.05235218089110189,
+  "mdice_fg": 0.0972613647395961
+}

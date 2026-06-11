@@ -1,0 +1,21 @@
+# KAGGLE (T4 x2, ~16GB, CUDA) — segmentation, 80/10/10 holdout on combined India+Italy.
+# 218 patients -> train≈174, val≈22, test≈22 (cohort-stratified).
+# SegFormer MiT-b3 @512. Save checkpoint for inference via infer_pipeline.py.
+# Checkpoint: outputs/seg/kaggle_holdout/seg_kaggle_holdout_holdout.pt
+name: seg_kaggle_holdout
+arch: segformer
+encoder: mit_b3
+encoder_weights: imagenet
+res: 512
+bs: 12              # T4 x2: ~6 imgs/GPU
+grad_accum: 1
+multi_gpu: true     # nn.DataParallel across 2 T4s (no-op on 1 GPU)
+epochs: 150
+lr: 6.0e-5
+weight_decay: 0.01
+num_workers: 4
+amp: true
+aug: heavy
+modes: [holdout]
+seed: 42
+out_subdir: kaggle_holdout

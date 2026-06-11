@@ -34,5 +34,11 @@ nohup.out
 CLAUDE.md
 .claude/
 
+# ---- Docs (exclude all .md and .txt except README.md) ----
+*.md
+!README.md
+*.txt
+!requirements.txt
+
 # Tracked on purpose (small, valuable): outputs/manifest.csv, outputs/anemia_features.csv,
-# outputs/{seg,clf}/*.json result files, configs/, src/, guide.txt, requirements.txt
+# outputs/{seg,clf}/*.json result files, configs/, src/

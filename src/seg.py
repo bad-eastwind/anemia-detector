@@ -24,7 +24,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import albumentations as A
 import pandas as pd
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 import segmentation_models_pytorch as smp
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -270,6 +270,43 @@ def run_final(cfg, outdir):
     return {"protocol": "final_all_data", "config": cfg, "weights": save, "train_fit": r}
 
 
+def run_holdout(cfg, outdir):
+    """80/10/10 train-val-test split on combined India+Italy. Stratified by cohort."""
+    man = load_manifest(cfg)
+    uids = man["uid"].values
+    strat = man["cohort"].values
+    seed = cfg.get("seed", 42)
+
+    tr_uids, tmp_uids, _, tmp_strat = train_test_split(
+        uids, strat, test_size=0.20, random_state=seed, stratify=strat
+    )
+    va_uids, te_uids, _, _ = train_test_split(
+        tmp_uids, tmp_strat, test_size=0.50, random_state=seed, stratify=tmp_strat
+    )
+
+    save = os.path.join(outdir, f"{cfg['name']}_holdout.pt")
+    r_val, model = train_split(tr_uids, va_uids, cfg, "holdout", save_path=save)
+
+    nw = cfg.get("num_workers", 2)
+    te_loader = DataLoader(SegDS(te_uids, False, cfg), batch_size=cfg["bs"],
+                           shuffle=False, num_workers=nw,
+                           pin_memory=DEVICE.type == "cuda")
+    r_test = evaluate(model, te_loader)
+
+    print(f"== HOLDOUT val  IoU {[round(v,3) for v in r_val['iou']]} mIoU_fg {float(np.mean(r_val['iou'][1:])):.3f}", flush=True)
+    print(f"== HOLDOUT test IoU {[round(v,3) for v in r_test['iou']]} mIoU_fg {float(np.mean(r_test['iou'][1:])):.3f}", flush=True)
+
+    return {
+        "protocol": "holdout_80_10_10",
+        "n_train": int(len(tr_uids)), "n_val": int(len(va_uids)), "n_test": int(len(te_uids)),
+        "config": cfg, "classes": CLASS_NAMES,
+        "val_metrics": r_val, "test_metrics": r_test,
+        "weights": save,
+        "miou_fg": float(np.mean(r_test["iou"][1:])),
+        "mdice_fg": float(np.mean(r_test["dice"][1:])),
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
@@ -287,7 +324,7 @@ def main():
     print(f"device={DEVICE} config={cfg['name']} arch={cfg['arch']} encoder={cfg['encoder']} "
           f"res={cfg['res']} bs={cfg['bs']} epochs={cfg['epochs']} amp={cfg.get('amp')} modes={modes}", flush=True)
 
-    fns = {"cv": run_cv, "loco": run_loco, "final": run_final}
+    fns = {"cv": run_cv, "loco": run_loco, "final": run_final, "holdout": run_holdout}
     for mode in modes:
         summary = fns[mode](cfg, outdir)
         outp = os.path.join(outdir, f"seg_{mode}_{cfg['name']}.json")
