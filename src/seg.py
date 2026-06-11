@@ -273,8 +273,8 @@ def run_final(cfg, outdir):
 def run_holdout(cfg, outdir):
     """80/10/10 train-val-test split on combined India+Italy. Stratified by cohort."""
     man = load_manifest(cfg)
-    uids = man["uid"].values
-    strat = man["cohort"].values
+    uids = np.array(man["uid"])
+    strat = np.array(man["cohort"])
     seed = cfg.get("seed", 42)
 
     tr_uids, tmp_uids, _, tmp_strat = train_test_split(
